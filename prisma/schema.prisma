@@ -1,0 +1,113 @@
+// This is your Prisma schema file
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+// String fields used for status/role values:
+// Role:         "ADMIN" | "MEMBER"
+// SprintStatus: "DRAFT" | "ACTIVE" | "VOTING" | "CLOSED"
+// IdeaStatus:   "DRAFT" | "SHORTLISTED" | "SELECTED"
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("MEMBER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  ideas    Idea[]
+  votes    Vote[]
+  comments Comment[]
+
+  @@map("users")
+}
+
+model SprintSession {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ideas Idea[]
+
+  @@map("sprint_sessions")
+}
+
+model Idea {
+  id               String   @id @default(cuid())
+  title            String
+  description      String
+  category             String   // "Workshop" | "Hackathon" | "Social" | "Tech Talk" | "Panel" | "Other"
+  impactScore          Int      @default(3) // 1–5
+  feasibilityScore     Int      @default(3) // 1–5
+  status               String   @default("DRAFT") // "DRAFT" | "SHORTLISTED" | "SELECTED"
+
+  // Extended fields
+  targetAudience       String?  // Who is this for?
+  estimatedParticipants Int?    // Expected headcount
+  roughBudget          String?  // e.g. "~$300", "Free", "$1000+"
+  timeNeeded           String?  // e.g. "2 hours", "Full day", "Weekend"
+  problemStatement     String?  // What problem does this solve?
+  valueProposition     String?  // Why is this worth doing?
+  expectedOutcome      String?  // What does success look like?
+  keyRisks             String?  // What could go wrong?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  authorId String
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  sprintId String
+  sprint   SprintSession @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+
+  votes    Vote[]
+  comments Comment[]
+
+  @@map("ideas")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ideaId String
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  // Each user can vote only once per idea
+  @@unique([userId, ideaId])
+  @@map("votes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ideaId String
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
