@@ -16,20 +16,26 @@ export default function JoinPage() {
     setError('')
     setLoading(true)
 
-    const res = await fetch('/api/auth/join', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name: trimmed }),
-    })
+    try {
+      const res = await fetch('/api/auth/join', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name: trimmed }),
+      })
 
-    if (!res.ok) {
-      const json = await res.json()
-      setError(json.error ?? 'Алдаа гарлаа')
+      if (!res.ok) {
+        let msg = 'Алдаа гарлаа'
+        try { const json = await res.json(); msg = json.error ?? msg } catch {}
+        setError(msg)
+        setLoading(false)
+        return
+      }
+
+      window.location.href = '/dashboard'
+    } catch {
+      setError('Сүлжээний алдаа гарлаа')
       setLoading(false)
-      return
     }
-
-    window.location.href = '/dashboard'
   }
 
   return (
